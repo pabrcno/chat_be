@@ -1,0 +1,55 @@
+name: Deploy to Google Cloud Run
+
+on:
+  push:
+    branch:
+      - "unauthenticated*"
+
+env:
+  OPEN_AI_API_KEY: ${{ secrets.OPEN_AI_API_KEY }}
+  FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+  FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+  FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+  FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+
+jobs:
+  setup:
+    name: Set up
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1.2
+        with:
+          channel: "stable"
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Run build
+        run: dart_frog build
+
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          project_id: ${{ secrets.FIREBASE_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy [SERVICE_NAME] \
+            --source build \
+            --region=[REGION] \
+            --allow-unauthenticated

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
+import 'package:dotenv/dotenv.dart';
 import 'package:firebase_dart/firebase_dart.dart';
 import 'package:firedart/firedart.dart';
 import 'package:http/http.dart' as http;
@@ -14,12 +15,13 @@ import '../domain/models/message/message.dart';
 import '../domain/models/message_request/message_request.dart';
 
 Future<Response> onRequest(RequestContext context) async {
-  // FirebaseDart.setup();
-  const options = FirebaseOptions(
-    apiKey: 'AIzaSyAH_GgzhU1gnkjj6LGXo50JGXf302MmEg4', // your Web API Key
-    projectId: 'topics-860b1', // your Project ID
-    appId: '1:199942357204:android:7057f62771b2cb096e7b41', // your App ID
-    messagingSenderId: '199942357204',
+  final env = DotEnv(includePlatformEnvironment: true)..load();
+
+  final options = FirebaseOptions(
+    apiKey: env['FIREBASE_API_KEY'] ?? '',
+    projectId: env['FIREBASE_PROJECT_ID'] ?? '',
+    appId: env['FIREBASE_APP_ID'] ?? '',
+    messagingSenderId: env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
   );
 
   if (Firebase.apps.isEmpty) {
@@ -64,7 +66,7 @@ Future<Response> onRequest(RequestContext context) async {
         },
 
         onError: (error) {
-          print('Error in stream: $error');
+          throw Exception('Error on chat WebSocket');
         },
 
         // The client has disconnected.
