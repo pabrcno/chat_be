@@ -1,5 +1,6 @@
 // routes/ws.dart
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
@@ -16,6 +17,7 @@ import '../domain/models/message/message.dart';
 import '../domain/models/message_request/message_request.dart';
 
 Future<Response> onRequest(RequestContext context) async {
+  checkForEnvs();
   final env = DotEnv(includePlatformEnvironment: true)..load();
 
   final options = FirebaseOptions(
@@ -113,5 +115,18 @@ Future<dynamic> verifyIdToken(String idToken) async {
     // If the server does not return a 200 OK response,
     // then throw an exception.
     throw Exception('Failed to verify ID token');
+  }
+}
+
+void checkForEnvs() {
+  log('CHECKING FOR ENVS');
+  if (Platform.environment['FIREBASE_API_KEY'] != null) {
+    log('FIREBASE_API_KEY: IS DEFINED');
+  }
+  if (Platform.environment['FIREBASE_PROJECT_ID'] != null) {
+    log('FIREBASE_PROJECT_ID: IS DEFINED');
+  }
+  if (Platform.environment['FIREBASE_APP_ID'] != null) {
+    log('FIREBASE_APP_ID: IS DEFINED');
   }
 }
