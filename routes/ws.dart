@@ -128,6 +128,7 @@ Future<Map<String, String?>> getSecrets() async {
 
     final secretValue = secretResponse.payload?.data;
     secrets[secretName] = secretValue;
+    print(secretValue);
   }
 
   return secrets;
