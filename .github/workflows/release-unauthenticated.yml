@@ -69,4 +69,4 @@ jobs:
           gcloud run deploy topic-be-unauthenticated \
             --source build \
             --region=us-central1 \
-            --allow-unauthenticated - name: Build and Deploy to Cloud Run
+            --allow-unauthenticated
