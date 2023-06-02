@@ -1,6 +1,5 @@
 // routes/ws.dart
 import 'dart:convert';
-import 'dart:developer';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
@@ -43,7 +42,7 @@ Future<Response> onRequest(RequestContext context) async {
           );
           await verifyIdToken(messageRequest.userToken);
           final IChatApi openAIChatApi =
-              OpenAIChatApi(apiKey: secrets['OPENAI_API_KEY']);
+              OpenAIChatApi(apiKey: secrets['OPEN_AI_API_KEY']);
 
           final store = Firestore.instance;
 
@@ -84,6 +83,7 @@ Future<Response> onRequest(RequestContext context) async {
 }
 
 Future<dynamic> verifyIdToken(String idToken) async {
+  print('verifyIdToken');
   final client = await clientViaApplicationDefaultCredentials(
     scopes: [IdentityToolkitApi.cloudPlatformScope],
   );
@@ -123,15 +123,11 @@ Future<Map<String, String?>> getSecrets() async {
 
   final secrets = <String, String?>{};
   for (final secretName in secretNames) {
-    try {
-      final secretResponse =
-          await secretsManager.projects.secrets.versions.access(secretName);
+    final secretResponse =
+        await secretsManager.projects.secrets.versions.access(secretName);
 
-      final secretValue = secretResponse.payload?.data;
-      secrets[secretName] = secretValue;
-    } catch (e) {
-      log(e.toString());
-    }
+    final secretValue = secretResponse.payload?.data;
+    secrets[secretName] = secretValue;
   }
 
   return secrets;
