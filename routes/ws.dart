@@ -137,10 +137,12 @@ Future<Map<String, String?>> getSecrets() async {
     final secretResponse = await secretsManager.projects.secrets.versions
         .access('projects/$PROJECT_ID/secrets/$secretName/versions/latest');
 
-    final secretValue =
-        utf8.decode(base64Decode(secretResponse.payload?.data ?? ''));
+    final secretValue = utf8
+        .decode(base64Decode(secretResponse.payload?.data ?? ''))
+        .replaceAll('\n', '')
+        .replaceAll('\r', '')
+        .replaceAll('\t', '');
     secrets[secretName] = secretValue;
-    print(secretValue);
   }
 
   return secrets;
