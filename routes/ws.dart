@@ -1,5 +1,6 @@
 // routes/ws.dart
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
@@ -18,10 +19,18 @@ Future<Response> onRequest(RequestContext context) async {
   final env = DotEnv(includePlatformEnvironment: true)..load();
 
   final options = FirebaseOptions(
-    apiKey: env['FIREBASE_API_KEY'] ?? '',
-    projectId: env['FIREBASE_PROJECT_ID'] ?? '',
-    appId: env['FIREBASE_APP_ID'] ?? '',
-    messagingSenderId: env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
+    apiKey: env['FIREBASE_API_KEY'] ??
+        Platform.environment['FIREBASE_API_KEY'] ??
+        '',
+    projectId: env['FIREBASE_PROJECT_ID'] ??
+        Platform.environment['FIREBASE_API_KEY'] ??
+        '',
+    appId: env['FIREBASE_APP_ID'] ??
+        Platform.environment['FIREBASE_API_KEY'] ??
+        '',
+    messagingSenderId: env['FIREBASE_MESSAGING_SENDER_ID'] ??
+        Platform.environment['FIREBASE_MESSAGING_SENDER_ID'] ??
+        '',
   );
 
   if (Firebase.apps.isEmpty) {
