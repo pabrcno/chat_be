@@ -1,99 +1,74 @@
 // routes/ws.dart
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
-import 'package:firebase_dart/firebase_dart.dart';
-import 'package:firedart/firedart.dart';
 import 'package:googleapis/secretmanager/v1.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 
 import '../api/openAi/chat_api.dart';
 import '../domain/api/chat/i_chat_api.dart';
-import '../domain/models/chat/chat.dart';
-import '../domain/models/message/message.dart';
+import '../domain/core/constants.dart';
+import '../domain/core/enums.dart';
+import '../domain/core/secrets.dart';
 import '../domain/models/message_request/message_request.dart';
-
-const secretNames = [
-  'OPEN_AI_API_KEY',
-  'FIREBASE_API_KEY',
-  'FIREBASE_APP_ID',
-  'FIREBASE_MESSAGING_SENDER_ID',
-];
-
-// ignore: constant_identifier_names
-const PROJECT_ID = 'topics-860b1';
+import '../domain/models/repo/i_chat_repo.dart';
+import '../repo/firestore_chat_repo.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   final secrets = await getSecrets();
 
-  final options = FirebaseOptions(
-    apiKey: secrets[secretNames[1]] ?? '',
-    projectId: PROJECT_ID,
-    appId: secrets[secretNames[2]] ?? '',
-    messagingSenderId: secrets[secretNames[3]] ?? '',
-  );
+  final repo = await FirestoreStore.create(secrets);
+  final IChatApi chatApi = OpenAIChatApi(apiKey: secrets.openAIKey);
 
-  if (Firebase.apps.isEmpty) {
-    FirebaseDart.setup();
+  final handler = createHandler(secrets, repo, chatApi);
 
-    await Firebase.initializeApp(name: 'chat', options: options);
-    Firestore.initialize(options.projectId);
-  }
+  return handler(context);
+}
 
-  final handler = webSocketHandler(
-    (channel, protocol) {
+Handler createHandler(Secrets secrets, IChatRepo repo, IChatApi chatApi) =>
+    webSocketHandler((channel, protocol) {
       channel.stream.listen(
         (event) async {
-          final json = jsonDecode(event as String) as Map<String, dynamic>;
-          final messageRequest = MessageRequest.fromJson(
-            json,
-          );
-          await verifyIdToken(
-            messageRequest.userToken,
-            secrets['FIREBASE_API_KEY'] ?? '',
-          );
-          final IChatApi openAIChatApi =
-              OpenAIChatApi(apiKey: secrets['OPEN_AI_API_KEY']);
+          try {
+            final json = jsonDecode(event as String) as Map<String, dynamic>;
+            final messageRequest = MessageRequest.fromJson(json);
+            final verificationData = await verifyIdToken(
+              messageRequest.userToken,
+              secrets.firebaseAPIKey,
+            );
 
-          final store = Firestore.instance;
+            // Check if the token verification was successful.
+            // ignore: avoid_dynamic_calls
+            if (verificationData == null || verificationData['error'] != null) {
+              throw Exception('ID token verification failed.');
+            }
 
-          final chatReference =
-              store.collection('chats').document(messageRequest.chatId);
-          final chat = await chatReference
-              .get()
-              .then((value) => Chat.fromJson(value.map));
-          final messages =
-              await chatReference.collection('messages').get().then(
-                    (value) => value
-                        .map(
-                          (e) => Message.fromJson(e.map),
-                        )
-                        .toList(),
-                  );
+            final chat = await repo.getChat(messageRequest.chatId);
+            final messages = await repo.getMessages(messageRequest.chatId);
 
-          openAIChatApi
-              .createChatCompletionStream(messages, chat.temperature)
-              .listen((event) {
-            channel.sink.add(event.content);
-          });
+            chatApi
+                .createChatCompletionStream(messages, chat.temperature)
+                .listen((message) {
+              channel.sink.add(jsonEncode(message.toJson()));
+            });
+          } catch (e) {
+            log('Error while processing the event: $event. Error: $e');
+            channel.sink
+                .add(jsonEncode({'error': 'Failed to process the event: $e'}));
+          }
         },
-
-        onError: (error) {
-          throw Exception('Error on chat WebSocket');
+        // ignore: inference_failure_on_untyped_parameter
+        onError: (e) {
+          log('Error on chat WebSocket: $e');
         },
-
-        // The client has disconnected.
         onDone: () async {
           return;
         },
       );
-    },
-  );
-
-  return handler(context);
-}
+    });
 
 Future<dynamic> verifyIdToken(String idToken, String key) async {
   final url =
@@ -110,40 +85,52 @@ Future<dynamic> verifyIdToken(String idToken, String key) async {
   );
 
   if (response.statusCode == 200) {
-    // If the server returns a 200 OK response, then parse the JSON.
     final data = jsonDecode(response.body);
-
-    // Now you can use the data
     return data;
   } else {
-    // If the server does not return a 200 OK response,
-    // then throw an exception.
-    throw Exception('Failed to verify ID token');
+    // Add specific error message
+    throw Exception(
+      'Failed to verify ID token. Status code: ${response.statusCode}, Response: ${response.body}',
+    );
   }
 }
 
-Future<Map<String, String?>> getSecrets() async {
-  final secretsClient = await clientViaApplicationDefaultCredentials(
-    scopes: [
-      SecretManagerApi.cloudPlatformScope,
-    ],
+Future<Secrets> getSecrets() async {
+  final secrets = Secrets(
+    openAIKey: await getSecretValue(SecretNames.OPEN_AI_API_KEY),
+    firebaseAPIKey: await getSecretValue(SecretNames.FIREBASE_API_KEY),
+    firebaseAppId: await getSecretValue(SecretNames.FIREBASE_APP_ID),
+    firebaseMessagingSenderId:
+        await getSecretValue(SecretNames.FIREBASE_MESSAGING_SENDER_ID),
   );
 
-  final secretsManager = SecretManagerApi(secretsClient);
+  return secrets;
+}
 
-  final secrets = <String, String?>{};
+Future<String> getSecretValue(SecretNames secretName) async {
+  try {
+    final secretsClient = await clientViaApplicationDefaultCredentials(
+      scopes: [
+        SecretManagerApi.cloudPlatformScope,
+      ],
+    );
 
-  for (final secretName in secretNames) {
-    final secretResponse = await secretsManager.projects.secrets.versions
-        .access('projects/$PROJECT_ID/secrets/$secretName/versions/latest');
+    final secretsManager = SecretManagerApi(secretsClient);
+    final secretResponse =
+        await secretsManager.projects.secrets.versions.access(
+      'projects/$PROJECT_ID/secrets/${secretName.name}/versions/latest',
+    );
 
     final secretValue = utf8
         .decode(base64Decode(secretResponse.payload?.data ?? ''))
         .replaceAll('\n', '')
         .replaceAll('\r', '')
         .replaceAll('\t', '');
-    secrets[secretName] = secretValue;
-  }
 
-  return secrets;
+    return secretValue;
+  } catch (e) {
+    throw Exception(
+      'Failed to retrieve the secret: ${secretName.name}. Error: $e',
+    );
+  }
 }
