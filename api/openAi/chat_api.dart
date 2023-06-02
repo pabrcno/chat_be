@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:dart_openai/dart_openai.dart';
-import 'package:dotenv/dotenv.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/api/chat/i_chat_api.dart';
@@ -11,10 +8,7 @@ import '../../domain/models/message/message.dart';
 const MAX_TOKEN_CONTEXT_LIMIT = 4096;
 
 class OpenAIChatApi implements IChatApi {
-  OpenAIChatApi({this.model = 'gpt-3.5-turbo'}) {
-    final env = DotEnv(includePlatformEnvironment: true)..load();
-    final apiKey =
-        env['OPEN_AI_API_KEY'] ?? Platform.environment['OPEN_AI_API_KEY'];
+  OpenAIChatApi({required String? apiKey, this.model = 'gpt-3.5-turbo'}) {
     if (apiKey != null) {
       OpenAI.apiKey = apiKey;
     }

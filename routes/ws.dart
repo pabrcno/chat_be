@@ -1,14 +1,14 @@
 // routes/ws.dart
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
-import 'package:dotenv/dotenv.dart';
 import 'package:firebase_dart/firebase_dart.dart';
 import 'package:firedart/firedart.dart';
-import 'package:http/http.dart' as http;
+import 'package:googleapis/identitytoolkit/v3.dart';
+import 'package:googleapis/secretmanager/v1.dart';
+import 'package:googleapis_auth/auth_io.dart';
 
 import '../api/openAi/chat_api.dart';
 import '../domain/api/chat/i_chat_api.dart';
@@ -17,22 +17,13 @@ import '../domain/models/message/message.dart';
 import '../domain/models/message_request/message_request.dart';
 
 Future<Response> onRequest(RequestContext context) async {
-  checkForEnvs();
-  final env = DotEnv(includePlatformEnvironment: true)..load();
+  final secrets = await getSecrets();
 
   final options = FirebaseOptions(
-    apiKey: env['FIREBASE_API_KEY'] ??
-        Platform.environment['FIREBASE_API_KEY'] ??
-        '',
-    projectId: env['FIREBASE_PROJECT_ID'] ??
-        Platform.environment['FIREBASE_API_KEY'] ??
-        '',
-    appId: env['FIREBASE_APP_ID'] ??
-        Platform.environment['FIREBASE_API_KEY'] ??
-        '',
-    messagingSenderId: env['FIREBASE_MESSAGING_SENDER_ID'] ??
-        Platform.environment['FIREBASE_MESSAGING_SENDER_ID'] ??
-        '',
+    apiKey: secrets['FIREBASE_API_KEY'] ?? '',
+    projectId: secrets['FIREBASE_PROJECT_ID'] ?? '',
+    appId: secrets['FIREBASE_APP_ID'] ?? '',
+    messagingSenderId: secrets['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
   );
 
   if (Firebase.apps.isEmpty) {
@@ -51,7 +42,8 @@ Future<Response> onRequest(RequestContext context) async {
             json,
           );
           await verifyIdToken(messageRequest.userToken);
-          final IChatApi openAIChatApi = OpenAIChatApi();
+          final IChatApi openAIChatApi =
+              OpenAIChatApi(apiKey: secrets['OPENAI_API_KEY']);
 
           final store = Firestore.instance;
 
@@ -92,41 +84,55 @@ Future<Response> onRequest(RequestContext context) async {
 }
 
 Future<dynamic> verifyIdToken(String idToken) async {
-  const url =
-      'https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=AIzaSyAH_GgzhU1gnkjj6LGXo50JGXf302MmEg4';
-
-  final response = await http.post(
-    Uri.parse(url),
-    headers: <String, String>{
-      'Content-Type': 'application/json; charset=UTF-8',
-    },
-    body: jsonEncode(<String, String>{
-      'idToken': idToken,
-    }),
+  final client = await clientViaApplicationDefaultCredentials(
+    scopes: [IdentityToolkitApi.cloudPlatformScope],
   );
+  final identityToolkitApi = IdentityToolkitApi(client);
 
-  if (response.statusCode == 200) {
-    // If the server returns a 200 OK response, then parse the JSON.
-    final data = jsonDecode(response.body);
+  try {
+    // Make the API request
+    final response = await identityToolkitApi.relyingparty.getAccountInfo(
+      IdentitytoolkitRelyingpartyGetAccountInfoRequest(idToken: idToken),
+    );
 
-    // Now you can use the data
-    return data;
-  } else {
-    // If the server does not return a 200 OK response,
-    // then throw an exception.
-    throw Exception('Failed to verify ID token');
+    // Extract and return the response data
+    return response.toJson();
+  } catch (e) {
+    // Handle any errors
+    throw Exception('Failed to verify ID token: $e');
   }
 }
 
-void checkForEnvs() {
-  log('CHECKING FOR ENVS');
-  if (Platform.environment['FIREBASE_API_KEY'] != null) {
-    log('FIREBASE_API_KEY: IS DEFINED');
+Future<Map<String, String?>> getSecrets() async {
+  print('getSecrets');
+  final secretNames = [
+    'OPEN_AI_API_KEY',
+    'FIREBASE_API_KEY',
+    'FIREBASE_PROJECT_ID',
+    'FIREBASE_APP_ID',
+    'FIREBASE_MESSAGING_SENDER_ID',
+  ];
+
+  final secretsClient = await clientViaApplicationDefaultCredentials(
+    scopes: [
+      SecretManagerApi.cloudPlatformScope,
+    ],
+  );
+
+  final secretsManager = SecretManagerApi(secretsClient);
+
+  final secrets = <String, String?>{};
+  for (final secretName in secretNames) {
+    try {
+      final secretResponse =
+          await secretsManager.projects.secrets.versions.access(secretName);
+
+      final secretValue = secretResponse.payload?.data;
+      secrets[secretName] = secretValue;
+    } catch (e) {
+      log(e.toString());
+    }
   }
-  if (Platform.environment['FIREBASE_PROJECT_ID'] != null) {
-    log('FIREBASE_PROJECT_ID: IS DEFINED');
-  }
-  if (Platform.environment['FIREBASE_APP_ID'] != null) {
-    log('FIREBASE_APP_ID: IS DEFINED');
-  }
+
+  return secrets;
 }
