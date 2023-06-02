@@ -2,7 +2,7 @@ name: Deploy to Google Cloud Run
 
 on:
   push:
-    branch:
+    branches:
       - "unauthenticated/*"
 
 env:
