@@ -3,7 +3,7 @@ name: Deploy to Google Cloud Run
 on:
   push:
     branches:
-      - "unauthenticated/*"
+      - "release/*"
 
 jobs:
   setup:
@@ -70,4 +70,3 @@ jobs:
           gcloud run deploy topic-be-unauthenticated \
             --source build \
             --region=us-central1 \
-            --allow-unauthenticated
