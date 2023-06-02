@@ -53,7 +53,7 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy topic_be_unauthenticated \
+          gcloud run deploy topic-be-unauthenticated \
             --source build \
             --region=us-central1 \
             --allow-unauthenticated
