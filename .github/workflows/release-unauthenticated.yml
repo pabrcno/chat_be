@@ -26,6 +26,9 @@ jobs:
         with:
           channel: "stable"
 
+      - name: Install dart_frog
+        run: dart pub global activate dart_frog
+
       - name: Install dependencies
         run: dart pub get
 
