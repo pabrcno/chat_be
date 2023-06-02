@@ -3,7 +3,7 @@ name: Deploy to Google Cloud Run
 on:
   push:
     branch:
-      - "unauthenticated*"
+      - "unauthenticated/*"
 
 env:
   OPEN_AI_API_KEY: ${{ secrets.OPEN_AI_API_KEY }}
