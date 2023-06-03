@@ -43,18 +43,23 @@ Handler createHandler(
               secrets.firebaseAPIKey,
             );
 
+            log(messageRequest.toString());
+
             // ignore: avoid_dynamic_calls
             if (verificationData == null || verificationData['error'] != null) {
               throw Exception('ID token verification failed.');
             }
 
-            final chat = await repo.getChat(messageRequest.chatId);
-            final messages = await repo.getMessages(messageRequest.chatId);
-
             chatApi
-                .createChatCompletionStream(messages, chat.temperature)
+                .createChatCompletionStream(
+              messageRequest.messages,
+              messageRequest.temperature,
+            )
                 .listen((message) {
-              channel.sink.add(jsonEncode(message.toJson()));
+              if (message.finishReason != null) {
+                channel.sink.close();
+              }
+              channel.sink.add(jsonEncode(message.message.toJson()));
             });
           } catch (e) {
             log('Error while processing the event: $event. Error: $e');
@@ -67,7 +72,7 @@ Handler createHandler(
           log('Error on chat WebSocket: $e');
         },
         onDone: () async {
-          return;
+          log('END OF STREAM');
         },
       );
     });

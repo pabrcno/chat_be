@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../domain/api/chat/i_chat_api.dart';
 import '../../domain/core/enums.dart';
 import '../../domain/models/message/message.dart';
+import '../../domain/models/stream_message/stream_message.dart';
 
 const MAX_TOKEN_CONTEXT_LIMIT = 4096;
 
@@ -37,7 +38,7 @@ class OpenAIChatApi implements IChatApi {
   }
 
   @override
-  Stream<Message> createChatCompletionStream(
+  Stream<StreamMessage> createChatCompletionStream(
     List<Message> messages,
     double? temperature,
   ) {
@@ -49,10 +50,17 @@ class OpenAIChatApi implements IChatApi {
       temperature: temperature,
     );
 
-    return stream.map(_convertStreamMessageToMessage);
+    return stream.map(
+      (event) => StreamMessage(
+        message: _convertStreamMessageToMessage(event),
+        finishReason: event.choices[0].finishReason,
+      ),
+    );
   }
 
-  Message _convertStreamMessageToMessage(dynamic completionModel) {
+  Message _convertStreamMessageToMessage(
+    OpenAIStreamChatCompletionModel completionModel,
+  ) {
     if (completionModel is FormatException) {
       return Message(
         id: 'partial',
@@ -66,9 +74,9 @@ class OpenAIChatApi implements IChatApi {
     return Message(
       id: 'partial',
       chatId: 'partial',
-      content: completionModel.choices.first.delta.content.toString() ?? '',
+      content: completionModel.choices.first.delta.content.toString(),
       sentAt: DateTime.now(),
-      isUser: completionModel.choices.first.delta.role.toString() == 'user',
+      isUser: completionModel.choices.first.delta.role == 'user',
       role: _openAiRoleToMessageRole(
         OpenAIChatMessageRole.assistant,
       ),

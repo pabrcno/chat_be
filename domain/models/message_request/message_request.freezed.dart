@@ -21,7 +21,8 @@ MessageRequest _$MessageRequestFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$MessageRequest {
   String get userToken => throw _privateConstructorUsedError;
-  String get chatId => throw _privateConstructorUsedError;
+  List<Message> get messages => throw _privateConstructorUsedError;
+  double get temperature => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -35,7 +36,7 @@ abstract class $MessageRequestCopyWith<$Res> {
           MessageRequest value, $Res Function(MessageRequest) then) =
       _$MessageRequestCopyWithImpl<$Res, MessageRequest>;
   @useResult
-  $Res call({String userToken, String chatId});
+  $Res call({String userToken, List<Message> messages, double temperature});
 }
 
 /// @nodoc
@@ -52,17 +53,22 @@ class _$MessageRequestCopyWithImpl<$Res, $Val extends MessageRequest>
   @override
   $Res call({
     Object? userToken = null,
-    Object? chatId = null,
+    Object? messages = null,
+    Object? temperature = null,
   }) {
     return _then(_value.copyWith(
       userToken: null == userToken
           ? _value.userToken
           : userToken // ignore: cast_nullable_to_non_nullable
               as String,
-      chatId: null == chatId
-          ? _value.chatId
-          : chatId // ignore: cast_nullable_to_non_nullable
-              as String,
+      messages: null == messages
+          ? _value.messages
+          : messages // ignore: cast_nullable_to_non_nullable
+              as List<Message>,
+      temperature: null == temperature
+          ? _value.temperature
+          : temperature // ignore: cast_nullable_to_non_nullable
+              as double,
     ) as $Val);
   }
 }
@@ -75,7 +81,7 @@ abstract class _$$_MessageRequestCopyWith<$Res>
       __$$_MessageRequestCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String userToken, String chatId});
+  $Res call({String userToken, List<Message> messages, double temperature});
 }
 
 /// @nodoc
@@ -90,17 +96,22 @@ class __$$_MessageRequestCopyWithImpl<$Res>
   @override
   $Res call({
     Object? userToken = null,
-    Object? chatId = null,
+    Object? messages = null,
+    Object? temperature = null,
   }) {
     return _then(_$_MessageRequest(
       userToken: null == userToken
           ? _value.userToken
           : userToken // ignore: cast_nullable_to_non_nullable
               as String,
-      chatId: null == chatId
-          ? _value.chatId
-          : chatId // ignore: cast_nullable_to_non_nullable
-              as String,
+      messages: null == messages
+          ? _value._messages
+          : messages // ignore: cast_nullable_to_non_nullable
+              as List<Message>,
+      temperature: null == temperature
+          ? _value.temperature
+          : temperature // ignore: cast_nullable_to_non_nullable
+              as double,
     ));
   }
 }
@@ -108,19 +119,31 @@ class __$$_MessageRequestCopyWithImpl<$Res>
 /// @nodoc
 @JsonSerializable()
 class _$_MessageRequest implements _MessageRequest {
-  const _$_MessageRequest({required this.userToken, required this.chatId});
+  const _$_MessageRequest(
+      {required this.userToken,
+      required final List<Message> messages,
+      required this.temperature})
+      : _messages = messages;
 
   factory _$_MessageRequest.fromJson(Map<String, dynamic> json) =>
       _$$_MessageRequestFromJson(json);
 
   @override
   final String userToken;
+  final List<Message> _messages;
   @override
-  final String chatId;
+  List<Message> get messages {
+    if (_messages is EqualUnmodifiableListView) return _messages;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_messages);
+  }
+
+  @override
+  final double temperature;
 
   @override
   String toString() {
-    return 'MessageRequest(userToken: $userToken, chatId: $chatId)';
+    return 'MessageRequest(userToken: $userToken, messages: $messages, temperature: $temperature)';
   }
 
   @override
@@ -130,12 +153,15 @@ class _$_MessageRequest implements _MessageRequest {
             other is _$_MessageRequest &&
             (identical(other.userToken, userToken) ||
                 other.userToken == userToken) &&
-            (identical(other.chatId, chatId) || other.chatId == chatId));
+            const DeepCollectionEquality().equals(other._messages, _messages) &&
+            (identical(other.temperature, temperature) ||
+                other.temperature == temperature));
   }
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(runtimeType, userToken, chatId);
+  int get hashCode => Object.hash(runtimeType, userToken,
+      const DeepCollectionEquality().hash(_messages), temperature);
 
   @JsonKey(ignore: true)
   @override
@@ -154,7 +180,8 @@ class _$_MessageRequest implements _MessageRequest {
 abstract class _MessageRequest implements MessageRequest {
   const factory _MessageRequest(
       {required final String userToken,
-      required final String chatId}) = _$_MessageRequest;
+      required final List<Message> messages,
+      required final double temperature}) = _$_MessageRequest;
 
   factory _MessageRequest.fromJson(Map<String, dynamic> json) =
       _$_MessageRequest.fromJson;
@@ -162,7 +189,9 @@ abstract class _MessageRequest implements MessageRequest {
   @override
   String get userToken;
   @override
-  String get chatId;
+  List<Message> get messages;
+  @override
+  double get temperature;
   @override
   @JsonKey(ignore: true)
   _$$_MessageRequestCopyWith<_$_MessageRequest> get copyWith =>
