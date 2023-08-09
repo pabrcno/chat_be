@@ -19,8 +19,7 @@ Future<Response> onRequest(RequestContext context) async {
 
   final repo = await FirestoreStore.create(secrets);
   // testing gpt-4 model for now, to test cost increase
-  final IChatApi chatApi =
-      OpenAIChatApi(apiKey: secrets.openAIKey, model: 'gpt-4');
+  final IChatApi chatApi = OpenAIChatApi(apiKey: secrets.openAIKey);
   final authService = AuthService();
   final handler =
       createHandler(secrets, repo, chatApi, authService.verifyIdToken);
