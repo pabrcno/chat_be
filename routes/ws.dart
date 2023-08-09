@@ -18,7 +18,7 @@ Future<Response> onRequest(RequestContext context) async {
   final secrets = await SecretsService().getSecrets();
 
   final repo = await FirestoreStore.create(secrets);
-  final IChatApi chatApi = OpenAIChatApi(apiKey: secrets.openAIKey);
+  final IChatApi chatApi = OpenAIChatApi(apiKey: secrets.openAIKey, model: 'gpt-4');
   final authService = AuthService();
   final handler =
       createHandler(secrets, repo, chatApi, authService.verifyIdToken);
