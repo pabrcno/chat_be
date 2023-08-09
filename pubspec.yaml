@@ -14,7 +14,7 @@ dependencies:
   dart_openai: ^2.0.1
   uuid: ^3.0.7
   dotenv: ^4.1.0
-  dart_frog_web_socket: ^0.1.0-dev.3
+  dart_frog_web_socket: ^1.0.0
 
   googleapis_auth: ^1.4.1
   firebase_dart: ^1.0.11
