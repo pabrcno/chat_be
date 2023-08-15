@@ -9,17 +9,17 @@ import '../../domain/models/stream_message/stream_message.dart';
 const MAX_TOKEN_CONTEXT_LIMIT = 4096;
 
 class OpenAIChatApi implements IChatApi {
-  OpenAIChatApi({required String? apiKey, this.model = 'gpt-3.5-turbo'}) {
+  OpenAIChatApi({required String? apiKey}) {
     if (apiKey != null) {
       OpenAI.apiKey = apiKey;
     }
   }
-  final String model;
 
   @override
   Future<Message> createChatCompletion(
     List<Message> messages,
     String chatId,
+    String model,
   ) async {
     if (messages.isEmpty) {
       throw Exception('No messages to convert');
@@ -41,6 +41,7 @@ class OpenAIChatApi implements IChatApi {
   Stream<StreamMessage> createChatCompletionStream(
     List<Message> messages,
     double? temperature,
+    String model,
   ) {
     final openAIMessages = _convertToOpenAIMessages(messages);
 
