@@ -1,57 +1,30 @@
-import 'dart:convert';
+import 'dart:io';
 
-import 'package:googleapis/secretmanager/v1.dart';
-import 'package:googleapis_auth/auth_io.dart';
-
-import '../domain/core/constants.dart';
 import '../domain/core/enums.dart';
 import '../domain/core/secrets.dart';
 
 class SecretsService {
   Future<Secrets> getSecrets() async {
-    final secretsClient = await clientViaApplicationDefaultCredentials(
-      scopes: [
-        SecretManagerApi.cloudPlatformScope,
-      ],
-    );
-
-    final secretsManager = SecretManagerApi(secretsClient);
-
+    // Instead of fetching secrets from Secret Manager, fetch from environment variables
     final secrets = Secrets(
-      openAIKey:
-          await _getSecretValue(SecretNames.OPEN_AI_API_KEY, secretsManager),
-      firebaseAPIKey:
-          await _getSecretValue(SecretNames.FIREBASE_API_KEY, secretsManager),
-      firebaseAppId:
-          await _getSecretValue(SecretNames.FIREBASE_APP_ID, secretsManager),
-      firebaseMessagingSenderId: await _getSecretValue(
-          SecretNames.FIREBASE_MESSAGING_SENDER_ID, secretsManager),
+      openAIKey: _getEnvVariable(SecretNames.OPEN_AI_API_KEY),
+      firebaseAPIKey: _getEnvVariable(SecretNames.FIREBASE_API_KEY),
+      firebaseAppId: _getEnvVariable(SecretNames.FIREBASE_APP_ID),
+      firebaseMessagingSenderId:
+          _getEnvVariable(SecretNames.FIREBASE_MESSAGING_SENDER_ID),
     );
 
     return secrets;
   }
 
-  Future<String> _getSecretValue(
-    SecretNames secretName,
-    SecretManagerApi secretsManager,
-  ) async {
-    try {
-      final secretResponse =
-          await secretsManager.projects.secrets.versions.access(
-        'projects/$PROJECT_ID/secrets/${secretName.name}/versions/latest',
-      );
-
-      final secretValue = utf8
-          .decode(base64Decode(secretResponse.payload?.data ?? ''))
-          .replaceAll('\n', '')
-          .replaceAll('\r', '')
-          .replaceAll('\t', '');
-
-      return secretValue;
-    } catch (e) {
+  String _getEnvVariable(SecretNames secretName) {
+    // Retrieve the environment variable using the secret name
+    final secretValue = Platform.environment[secretName.name];
+    if (secretValue == null) {
       throw Exception(
-        'Failed to retrieve the secret: ${secretName.name}. Error: $e',
+        'Environment variable for secret: ${secretName.name} not found.',
       );
     }
+    return secretValue;
   }
 }
