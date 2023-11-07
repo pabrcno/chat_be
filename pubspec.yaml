@@ -1,6 +1,6 @@
 name: topic_be
 description: An new Dart Frog application
-version: 0.0.6+1
+version: 0.0.7+1
 publish_to: none
 
 environment:
